@@ -29,7 +29,7 @@
 ;; For example, a pycodestyle checker can be defined like this:
 ;;
 ;;   (pycodestyle
-;;     :class flymake-x-pipe-checker
+;;     :class pipe
 ;;     :modes (python-mode)
 ;;     :command "pycodestyle -"
 ;;     :error-patterns
@@ -342,8 +342,10 @@ checkers, gathers their diagnostics and reports them to REPORT-FN."
   (add-hook 'kill-buffer-hook #'flymake-x--cleanup nil t)
   (cl-loop
    for (name . plist) in flymake-x-checkers
-   for class = (or (plist-get plist :class)
-                   'flymake-x-checker)
+   for class = (pcase (plist-get plist :class)
+                 ('pipe 'flymake-x-pipe-checker)
+                 ('temp-file 'flymake-x-temp-file-checker)
+                 (value value))
    for modes = (plist-get plist :modes)
    when (or (null modes) (memq major-mode modes))
    do
@@ -407,11 +409,11 @@ The keyword arguments to each checker are:
   Required.  This says how the checker process will accept input.
   This is one of:
 
-    - `flymake-x-pipe-checker'
+    - `flymake-x-pipe-checker' (or just \\+`pipe')
 
     The checker will accept the buffer string via stdin.
 
-    - `flymake-x-temp-file-checker'
+    - `flymake-x-temp-file-checker' (or just \\+`temp-file')
 
     A temporary file will be created with the buffer contents,
     and it's path will be passed as an argument to the checker

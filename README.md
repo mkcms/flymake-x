@@ -6,7 +6,7 @@ For example, a [pycodestyle][pycodestyle] checker can be defined like this:
 
 ```elisp
 (pycodestyle
-  :class flymake-x-pipe-checker
+  :class pipe
   :modes (python-mode)
   :command "pycodestyle -"
   :error-patterns
@@ -45,11 +45,11 @@ The keyword arguments to each checker are:
 
   Required.  This says how the checker process will accept input.  This is one of:
 
-    - `flymake-x-pipe-checker`
+    - `flymake-x-pipe-checker` (or just `pipe`)
 
     The checker will accept the buffer string via stdin.
 
-    - `flymake-x-temp-file-checker`
+    - `flymake-x-temp-file-checker` (or just `temp-file`)
 
     A temporary file will be created with the buffer contents, and it's path
     will be passed as an argument to the checker process.

@@ -3,7 +3,7 @@
 (setq
  flymake-x-checkers
  '((long-lines
-    :class flymake-x-pipe-checker
+    :class pipe
     :command (lambda ()
                (format "grep -n -E ^.{%s,}" (1+ (or fill-column 80))))
     :error-patterns
@@ -11,14 +11,14 @@
       (line-start line ":" (zero-or-more nonl) line-end)
       "Line too long")))
    (trailing-whitespace
-    :class flymake-x-pipe-checker
+    :class pipe
     :command "grep -n -E \"[\t ]+$\""
     :error-patterns
     ((:note
       (line-start line ":" (zero-or-more nonl) line-end)
       "Trailing whitespace")))
    (pylint
-    :class flymake-x-temp-file-checker
+    :class temp-file
     :modes (python-mode)
     :command (lambda ()
                (if-let
@@ -45,7 +45,7 @@
                    (one-or-more digit) ":" (zero-or-more nonl))
                   line-end))))
    (shellcheck
-    :class flymake-x-temp-file-checker
+    :class temp-file
     :modes (sh-mode)
     :command "shellcheck -f gcc"
     :columns-start-from-1 t
@@ -57,7 +57,7 @@
      (:note
       (line-start file ":" line ":" column ": note: " (message (zero-or-more nonl)) line-end))))
    (isort
-    :class flymake-x-pipe-checker
+    :class pipe
     :stderr t
     :modes (python-mode)
     :command "isort -c -"
