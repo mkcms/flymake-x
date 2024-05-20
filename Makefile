@@ -5,7 +5,9 @@ ELC := $(FILES:.el=.elc)
 compile: $(ELC)
 
 %.elc: %.el
-	${emacs} -Q --batch -L . -f batch-byte-compile $<
+	${emacs} -Q --batch -L .                                               \
+	    --eval '(setq byte-compile-error-on-warn t)'                       \
+	    -f batch-byte-compile $<
 
 # Run emacs -Q with flymake-x
 _baremacs: ${ELC}
