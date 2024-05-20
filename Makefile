@@ -9,6 +9,15 @@ compile: $(ELC)
 	    --eval '(setq byte-compile-error-on-warn t)'                       \
 	    -f batch-byte-compile $<
 
+lint:
+	file=$$(mktemp)                                                        \
+	&& ${emacs} -Q --batch flymake-x.el                                    \
+		--eval '(checkdoc-file (buffer-file-name))' 2>&1 | tee $$file  \
+	&& test -z "$$(cat $$file)"                                            \
+	&& (grep -n -E "^.{80,}" flymake-x.el `# Catch long lines`             \
+	    | sed                                                              \
+		-r '1d;s/^([0-9]+).*/flymake-x.el:\1: Too long/;q1')
+
 # Run emacs -Q with flymake-x
 _baremacs: ${ELC}
 	${emacs} -Q -L . -l flymake-x -l sample-checkers -f flymake-x-setup

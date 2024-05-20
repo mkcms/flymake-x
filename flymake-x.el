@@ -28,13 +28,13 @@
 ;;
 ;; For example, a pycodestyle checker can be defined like this:
 ;;
-;;   (pycodestyle
-;;     :class pipe
-;;     :modes (python-mode)
-;;     :command "pycodestyle -"
-;;     :error-patterns
-;;     ((:warning
-;;       (line-start file ":" line ":" column ": " (message (zero-or-more nonl)) line-end))))
+;;  (pycodestyle
+;;    :class pipe
+;;    :modes (python-mode)
+;;    :command "pycodestyle -"
+;;    :error-patterns
+;;    ((:warning
+;;      (bol file ":" line ":" column ": " (message (zero-or-more nonl)) eol)))
 ;;
 ;;; Usage
 ;;
@@ -409,11 +409,11 @@ The keyword arguments to each checker are:
   Required.  This says how the checker process will accept input.
   This is one of:
 
-    - `flymake-x-pipe-checker' (or just \\+`pipe')
+    - \\='flymake-x-pipe-checker (or just \\='pipe)
 
     The checker will accept the buffer string via stdin.
 
-    - `flymake-x-temp-file-checker' (or just \\+`temp-file')
+    - \\='flymake-x-temp-file-checker (or just \\='temp-file)
 
     A temporary file will be created with the buffer contents,
     and it's path will be passed as an argument to the checker
@@ -477,9 +477,7 @@ The keyword arguments to each checker are:
 
 - :columns-start-from-1 t
 
-  Optional.  If non-nil, assume columns start from 1.
-
-")
+  Optional.  If non-nil, assume columns start from 1.")
 
 (defun flymake-x-setup (&optional this-buffer-only)
   "Enable flymake-x globally.
