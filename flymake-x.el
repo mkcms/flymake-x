@@ -165,7 +165,7 @@ functions.")
                  :error "Error when processing output of checker %s: %s"
                  name err))))
            (ignore-errors
-             (when-let ((buf (flymake-x-process-output-buffer checker)))
+             (when-let* ((buf (flymake-x-process-output-buffer checker)))
                (let ((kill-buffer-query-functions nil))
                  (kill-buffer buf))))
            (condition-case err (flymake-x-stop checker)
@@ -175,7 +175,7 @@ functions.")
 
 (cl-defmethod flymake-x-stop ((checker flymake-x-process-checker))
   "Stop a process CHECKER."
-  (when-let ((process (flymake-x-checker-process checker)))
+  (when-let* ((process (flymake-x-checker-process checker)))
     (when (process-live-p process)
       (kill-process process))))
 
@@ -216,11 +216,11 @@ MESSAGE is either nil or the message matched by the pattern."
                          for i from 0
                          if (looking-at (rx-to-string `(seq ,@pattern)))
                          return (list i
-                                      (when-let ((line (match-string 10)))
+                                      (when-let* ((line (match-string 10)))
                                         (string-to-number line))
-                                      (when-let ((column (match-string 11)))
+                                      (when-let* ((column (match-string 11)))
                                         (string-to-number column))
-                                      (when-let ((message (match-string 12)))
+                                      (when-let* ((message (match-string 12)))
                                         message))))
           (if retval
               (goto-char (match-end 0))
@@ -260,7 +260,7 @@ MESSAGE is either nil or the message matched by the pattern."
                   (cond
                    ((< (+ (point) column) (line-end-position))
                     (goto-char (+ (point) column))
-                    (if-let ((bounds (bounds-of-thing-at-point 'sexp)))
+                    (if-let* ((bounds (bounds-of-thing-at-point 'sexp)))
                         (setq beg (car bounds) end (cdr bounds))
                       (setq beg (point))))
                    (t (setq beg (point)))))
@@ -284,7 +284,7 @@ MESSAGE is either nil or the message matched by the pattern."
 (cl-defmethod flymake-x-start
   :after ((checker flymake-x-pipe-checker)) ;lint:ignore
   "Start a pipe CHECKER."
-  (when-let ((process (flymake-x-checker-process checker)))
+  (when-let* ((process (flymake-x-checker-process checker)))
     (process-send-region process (point-min) (point-max))
     (process-send-eof process)))
 
@@ -302,7 +302,7 @@ the checker process exits, the file is deleted.")
 (cl-defmethod flymake-x-start
   :before ((checker flymake-x-temp-file-checker)) ;lint:ignore
   "Start a temp-file CHECKER."
-  (when-let ((buffer-file (buffer-file-name)))
+  (when-let* ((buffer-file (buffer-file-name)))
     (let* ((directory (file-name-directory buffer-file))
            (ext (file-name-extension buffer-file))
            (temporary-file-directory directory)
@@ -316,7 +316,7 @@ the checker process exits, the file is deleted.")
 (cl-defmethod flymake-x-stop
   :after ((checker flymake-x-temp-file-checker)) ;lint:ignore
   "Stop a temp-file CHECKER."
-  (when-let ((file (flymake-x-checker-temp-file checker)))
+  (when-let* ((file (flymake-x-checker-temp-file checker)))
     (when (file-exists-p file) (delete-file file))))
 
 
