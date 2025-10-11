@@ -19,7 +19,7 @@ For example, a [pycodestyle][pycodestyle] checker can be defined like this:
 Call `flymake-x-setup` once, and modify `flymake-x-checkers`.  This variable is
 a list of checker definitions.
 
-See [sample-checkers.el](./sample-checkers.el) for an example.
+See [flymake-x-sample-checkers.el](./flymake-x-sample-checkers.el) for an example.
 
 Each checker should look like this:
 
