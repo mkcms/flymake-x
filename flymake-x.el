@@ -42,6 +42,9 @@
 ;;
 ;; Call `flymake-x-setup' once, and modify `flymake-x-checkers'.  See it's
 ;; documentation for details.
+;;
+;; You can also load the included \\='flymake-x-sample-checkers\\=' library
+;; which contains a few predefined checkers.
 
 ;;; Code:
 
