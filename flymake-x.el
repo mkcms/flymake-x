@@ -6,7 +6,7 @@
 ;; Keywords: languages, tools
 ;; Version: 0.1.0
 ;; Homepage: https://github.com/mkcms/flymake-x
-;; Package-Requires: ((emacs "27.1") (flymake "1.0"))
+;; Package-Requires: ((emacs "28.1") (flymake "1.0"))
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
