@@ -45,6 +45,11 @@
 ;;
 ;; You can also load the included \\='flymake-x-sample-checkers\\=' library
 ;; which contains a few predefined checkers.
+;;
+;; For easily defining new checkers, a helpful command is provided to display
+;; the checker output, found diagnostics and other information:
+;; `flymake-x-debug'.  It should be called with the name of a checker or it's
+;; definition, as described in `flymake-x-checkers'.
 
 ;;; Code:
 
@@ -189,6 +194,40 @@ We override it to return nil in that case."
     (when (process-live-p process)
       (kill-process process))))
 
+(eval-and-compile
+  (defvar flymake-x--rx-base-group 10))
+
+(defmacro flymake-x--rx-let-eval (&rest body)
+  "Evaluate BODY with extended rx forms supported by flymake-x.
+Special variables are available in BODY:
+
+- \\='line-group\\='
+- \\='column-group\\='
+- \\='message-group\\='
+- \\='file-group\\='
+
+These variables hold the regexp group numbers that would be matched by
+flymake-x patterns."
+  (declare (indent 0) (debug (body)))
+  (let* ((line flymake-x--rx-base-group)
+         (column (1+ line))
+         (message (1+ column))
+         (file (1+ message)))
+    `(let ((line-group ,line)
+           (column-group ,column)
+           (message-group ,message)
+           (file-group ,file))
+       ;; Prevent warning about unused variables.
+       (ignore line-group)
+       (ignore column-group)
+       (ignore message-group)
+       (ignore file-group)
+       (rx-let-eval '((line (group-n ,line (one-or-more digit)))
+                      (column (group-n ,column (one-or-more digit)))
+                      (message (&rest pat) (group-n ,message pat))
+                      (file (group-n ,file (zero-or-more nonl))))
+         ,@body))))
+
 (defun flymake-x--patterns-search (patterns)
   "Search for rx PATTERNS in current buffer and return a match.
 
@@ -214,24 +253,23 @@ LINE is either nil or the line number matched by the pattern,
 COLUMN is either nil or the column matched by the pattern,
 MESSAGE is either nil or the message matched by the pattern."
   (save-match-data
-    (rx-let-eval '((line (group-n 10 (one-or-more digit)))
-                   (column (group-n 11 (one-or-more digit)))
-                   (message (&rest pat) (group-n 12 pat))
-                   (file (group-n 13 (zero-or-more nonl))))
+    (flymake-x--rx-let-eval
       (let (retval start)
         (while (and (not (eobp)) (null retval))
           (setq start (point))
           (setq retval
-                (cl-loop for pattern in patterns
-                         for i from 0
-                         if (looking-at (rx-to-string `(seq ,@pattern)))
-                         return (list i
-                                      (when-let* ((line (match-string 10)))
-                                        (string-to-number line))
-                                      (when-let* ((column (match-string 11)))
-                                        (string-to-number column))
-                                      (when-let* ((message (match-string 12)))
-                                        message))))
+                (cl-loop
+                 for pattern in patterns
+                 for i from 0
+                 if (looking-at (rx-to-string `(seq ,@pattern)))
+                 return
+                 (list i
+                       (when-let* ((line (match-string line-group)))
+                         (string-to-number line))
+                       (when-let* ((column (match-string column-group)))
+                         (string-to-number column))
+                       (when-let* ((message (match-string message-group)))
+                         message))))
           (if retval
               (goto-char (match-end 0))
             (forward-line 1)
@@ -496,6 +534,158 @@ The keyword arguments to each checker are:
 If THIS-BUFFER-ONLY, enable it only in this buffer instead."
   (add-hook 'flymake-diagnostic-functions #'flymake-x--start-checkers
             nil this-buffer-only))
+
+
+;; Debugging
+
+(defun flymake-x-debug (checker)
+  "Debug CHECKER: run it and show a buffer displaying helpful information.
+CHECKER should be either a symbol or a checker definition as described
+in `flymake-x-checkers'.  If it is a symbol, then the checker definition
+is looked up in `flymake-x-checkers' using that symbol.
+
+The checker is run for the current buffer.
+The displayed information includes:
+- Process exit status
+- Command that was run
+- Found diagnostics and details
+- Compiled error patterns."
+  (interactive
+   (list
+    (intern
+     (completing-read "Debug checker in this buffer: "
+                      (mapcar #'symbol-name (mapcar #'car flymake-x-checkers))
+                      nil t))))
+  (when (symbolp checker)
+    (setq checker (assoc checker flymake-x-checkers)))
+
+  (flymake-x--cleanup)
+
+  (let* ((flymake-x-checkers (list checker))
+         (buf (current-buffer))
+         (goto-pt (lambda (point)
+                    (lambda (&rest _args)
+                      (with-current-buffer buf
+                        (pop-to-buffer (current-buffer))
+                        (goto-char point)))))
+         process
+         stderr-buffer
+         diagnostics
+         sentinel
+         process-output)
+    (flymake-x--start-checkers (lambda (diags) (setq diagnostics diags)))
+    (unless flymake-x-buffer-checkers
+      (error (concat
+              "No checkers were created for the current buffer;"
+              " is the checker defined for another major mode?")))
+    (setq checker (car flymake-x-buffer-checkers))
+    (setq process (flymake-x-checker-process checker))
+
+    (setq sentinel (process-sentinel process))
+    (set-process-sentinel
+     process
+     (lambda (&rest args)
+       (with-current-buffer (flymake-x-process-output-buffer checker)
+         (setq process-output (buffer-string)))
+       (apply sentinel args)))
+
+    (ignore-errors (kill-buffer "*flymake-x debug process output*"))
+
+    (with-current-buffer (get-buffer-create "*flymake-x debug*")
+      (let ((inhibit-read-only t))
+        (setq buffer-read-only t)
+        (setq buffer-undo-list t)
+        (setq truncate-lines t)
+        (erase-buffer)
+
+        (setq stderr-buffer (format " *stderr of flymake-x-%s*"
+                                    (flymake-x-checker-name checker)))
+
+        (save-current-buffer
+          (while (accept-process-output process))
+          (sit-for 0.1))
+
+        (let ((standard-output (current-buffer)))
+          (insert (format "Checker: %s\n" (flymake-x-checker-name checker)))
+          (insert (format "Type: %s\n" (eieio-object-class checker)))
+          (insert (format "Diagnostics from stderr: %s\n"
+                          (if (flymake-x-checker-use-stderr-p checker)
+                              "yes" "no")))
+          (insert (format "Lines start from 0: %s\n"
+                          (if (flymake-x-checker-lines-start-from-0-p checker)
+                              "yes" "no")))
+          (insert
+           (format "Columns start from 1: %s\n"
+                   (if (flymake-x-checker-columns-start-from-1-p checker)
+                       "yes" "no")))
+          (insert (format "Command: %S\n" (flymake-x-checker-command checker)))
+          (insert (format "Process exit status: %s\n"
+                          (process-exit-status process)))
+          (insert (format "Output: %s chars " (length process-output)))
+          (insert-button
+           "[Show process output]" 'action
+           (lambda (&rest _args)
+             (with-current-buffer
+                 (get-buffer-create "*flymake-x debug process output*")
+               (let ((inhibit-read-only t))
+                 (setq buffer-read-only t)
+                 (setq buffer-undo-list t)
+                 (erase-buffer)
+                 (insert process-output)
+                 (pop-to-buffer (current-buffer))
+                 (special-mode)))))
+          (insert "\n")
+          (insert "Stderr: ")
+          (insert-button
+           "[Show stderr buffer]" 'action
+           (lambda (&rest _args) (pop-to-buffer stderr-buffer)))
+          (insert "\n")
+          (insert "Error patterns:\n")
+          (cl-loop for pat in (flymake-x-checker-error-patterns checker)
+                   do (progn (insert "\n")
+                             (insert "    ")
+                             (prin1 pat)
+                             (insert "\n")
+                             (insert "    Which is:\n")
+                             (insert
+                              (format "    %S"
+                                      (flymake-x--rx-let-eval
+                                        (rx-to-string `(seq ,@(cadr pat))))))
+                             (insert "\n")))
+          (insert "\n")
+
+          (insert (format "Diagnostics found: %s\n" (length diagnostics)))
+          (pcase-dolist
+              (`(,i . ,diag) (cl-loop for x in diagnostics
+                                      for i from 0
+                                      collect (cons i x)))
+            (insert "\n")
+            (insert (format "    Index: %d\n" i))
+            (insert (format "    Type: %s\n"
+                            (flymake-diagnostic-type diag)))
+
+            (insert (format "    Beg: %s " (flymake-diagnostic-beg diag)))
+            (insert-button "[Goto]" 'action
+                           (funcall goto-pt (flymake-diagnostic-beg diag)))
+            (insert "\n")
+            (insert (format "    End: %s " (flymake-diagnostic-end diag)))
+            (insert-button "[Goto]" 'action
+                           (funcall goto-pt (flymake-diagnostic-end diag)))
+            (insert "\n")
+
+            (insert (format "    Text: %s\n"
+                            (format "%S" (flymake-diagnostic-text diag))))
+            )))
+      (special-mode)
+      (button-mode)
+      (font-lock-add-keywords nil
+                              '(("\\(:error\\)" 1 'error prepend)
+                                ("\\(:warning\\)" 1 'warning prepend)
+                                ("\\(:note\\)" 1 'flymake-note-echo prepend)))
+      (setq-local font-lock-keywords-only nil)
+      (font-lock-fontify-region (point-min) (point-max))
+      (goto-char (point-min))
+      (pop-to-buffer (current-buffer)))))
 
 ;; This code is only evaluated when linting.  It is used to ignore certain
 ;; unfixable warnings on older Emacs versions.

@@ -21,6 +21,11 @@ a list of checker definitions.
 
 See [flymake-x-sample-checkers.el](./flymake-x-sample-checkers.el) for an example.
 
+For easily defining new checkers, a helpful command is provided to display the
+checker output, found diagnostics and other information: `flymake-x-debug`.  It
+should be called with the name of a checker or it's definition, as described
+below.
+
 Each checker should look like this:
 
 ```elisp
