@@ -24,7 +24,8 @@ See [flymake-x-sample-checkers.el](./flymake-x-sample-checkers.el) for an exampl
 For easily defining new checkers, a helpful command is provided to display the
 checker output, found diagnostics and other information: `flymake-x-debug`.  It
 should be called with the name of a checker or it's definition, as described
-below.
+below.  Another useful command is `flymake-x-construct-pattern-interactively`,
+which aids in constructing the error patterns.
 
 Each checker should look like this:
 
