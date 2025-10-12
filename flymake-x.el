@@ -93,6 +93,11 @@ functions.")
 (cl-defgeneric flymake-x-stop (checker)
   "Stop CHECKER.")
 
+(cl-defmethod slot-unbound ((_object flymake-x-checker) _class _slot-name _fn)
+  "Override `slot-unbound' error for all checker objects.
+We override it to return nil in that case."
+  nil)
+
 
 ;; Process checker
 
