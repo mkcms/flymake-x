@@ -25,7 +25,8 @@ lint:
 # Run emacs -Q with flymake-x
 _baremacs: ${ELC}
 	${emacs} -Q -L . \
-	         -l flymake-x -l flymake-x-sample-checkers -f flymake-x-setup
+	         -l flymake-x -l flymake-x-sample-checkers -f flymake-x-setup  \
+	         -f flymake-x-sample-checkers-setup
 
 update-copyright-years:
 	year=`date +%Y`;                                                       \
