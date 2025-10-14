@@ -49,15 +49,12 @@
 ;; For easily defining new checkers, a helpful command is provided to display
 ;; the checker output, found diagnostics and other information:
 ;; `flymake-x-debug'.  It should be called with the name of a checker or it's
-;; definition, as described in `flymake-x-checkers'.  Another useful command is
-;; `flymake-x-construct-pattern-interactively', which aids in constructing the
-;; error patterns.
+;; definition, as described in `flymake-x-checkers'.
 
 ;;; Code:
 
 (require 'cl-lib)
 (require 'flymake)
-(require 're-builder)
 (require 'rx)
 (require 'subr-x)
 (require 'eieio)
@@ -540,56 +537,6 @@ If THIS-BUFFER-ONLY, enable it only in this buffer instead."
 
 
 ;; Debugging
-
-(defun flymake-x-construct-pattern-interactively (&optional initial)
-  "Interactively construct patterns using `re-builder'.
-INITIAL if given is the initial `rx'-style pattern for it.
-The current buffer should contain the output of a checker program.  The
-`re-builder' buffer is set up such that the custom `rx' constructs
-for checkers (e.g. \\='file\\=') are available to use in it.
-
-The patterns are constructed under `recursive-edit', so
-\\[abort-recursive-edit] or \\[exit-recursive-edit] must be called to
-exit from the command.
-
-Interactively, when called with a prefix argument, prompts for the name
-of a checker from `flymake-x-checkers' and then for a pattern kind, and
-uses that as initial pattern to edit."
-  (interactive
-   (when current-prefix-arg
-     (let* ((checker
-             (intern
-              (completing-read "Construct pattern for checker: "
-                               (mapcar #'symbol-name
-                                       (mapcar #'car flymake-x-checkers)))))
-            (checker (map-elt flymake-x-checkers checker))
-            (patterns (plist-get checker :error-patterns))
-            (pattern-kind
-             (intern
-              (completing-read "Pattern to construct: "
-                               (mapcar #'symbol-name
-                                       (mapcar #'car patterns)))))
-            (pattern (car (map-elt patterns pattern-kind))))
-       (list (or (and (listp pattern) `(seq ,@pattern)) pattern)))))
-  (let ((buf (current-buffer))
-        (window (selected-window)))
-    (flymake-x--rx-let-eval
-      (re-builder)
-      (unwind-protect
-          (progn
-            (setq reb-re-syntax 'rx)
-            (setq reb-target-buffer buf)
-            (setq reb-target-window window)
-            (when initial
-              (with-current-buffer reb-buffer
-                (erase-buffer)
-                (insert "'")
-                (prin1 initial (current-buffer))))
-            (recursive-edit)
-            (message (substitute-command-keys
-                      (concat "Use \\[abort-recursive-edit] or"
-                              " \\[exit-recursive-edit] to exit."))))
-        (reb-quit)))))
 
 (defun flymake-x-debug (checker)
   "Debug CHECKER: run it and show a buffer displaying helpful information.
