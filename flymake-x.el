@@ -143,7 +143,7 @@ We override it to return nil in that case."
               (flymake-x-checker-name checker))))
 
 (cl-defmethod initialize-instance
-  :after ((instance flymake-x-process-checker) _slots) ;lint:ignore
+  :after ((instance flymake-x-process-checker) _slots)
   "Constructor for flymake-x process checker class."
   (when (functionp (flymake-x-checker-command instance))
     (setf (flymake-x-checker-command instance)
@@ -330,7 +330,7 @@ MESSAGE is either nil or the message matched by the pattern."
   :documentation "A process checker that accepts the input file via stdin.")
 
 (cl-defmethod flymake-x-start
-  :after ((checker flymake-x-pipe-checker)) ;lint:ignore
+  :after ((checker flymake-x-pipe-checker))
   "Start a pipe CHECKER."
   (when-let* ((process (flymake-x-checker-process checker)))
     (process-send-region process (point-min) (point-max))
@@ -348,7 +348,7 @@ to that file is appended to the checker's command line.  After
 the checker process exits, the file is deleted.")
 
 (cl-defmethod flymake-x-start
-  :before ((checker flymake-x-temp-file-checker)) ;lint:ignore
+  :before ((checker flymake-x-temp-file-checker))
   "Start a temp-file CHECKER."
   (when-let* ((buffer-file (buffer-file-name)))
     (let* ((directory (file-name-directory buffer-file))
@@ -362,7 +362,7 @@ the checker process exits, the file is deleted.")
             (concat (flymake-x-checker-command checker) " " tempfile)))))
 
 (cl-defmethod flymake-x-stop
-  :after ((checker flymake-x-temp-file-checker)) ;lint:ignore
+  :after ((checker flymake-x-temp-file-checker))
   "Stop a temp-file CHECKER."
   (when-let* ((file (flymake-x-checker-temp-file checker)))
     (when (file-exists-p file) (delete-file file))))
@@ -686,24 +686,6 @@ The displayed information includes:
       (font-lock-fontify-region (point-min) (point-max))
       (goto-char (point-min))
       (pop-to-buffer (current-buffer)))))
-
-;; This code is only evaluated when linting.  It is used to ignore certain
-;; unfixable warnings on older Emacs versions.
-;;
-;;lint: (progn
-;;lint:   (require 'checkdoc)
-;;lint:   (defvar lint-orig-checkdoc-create-error-function
-;;lint:     checkdoc-create-error-function)
-;;lint:   (defun lint-checkdoc-create-error-function (text start end &rest args)
-;;lint:     "Create checkdoc error for TEXT START END ARGS."
-;;lint:     (save-excursion
-;;lint:       (goto-char start)
-;;lint:       (goto-char (line-beginning-position))
-;;lint:       (when (looking-at ".*;.*\\blint:ignore\\b")
-;;lint:         (setq text (concat "__ignore: " text)))
-;;lint:       (apply lint-orig-checkdoc-create-error-function text start end args)))
-;;lint:   (setq checkdoc-create-error-function
-;;lint:         #'lint-checkdoc-create-error-function))
 
 (provide 'flymake-x)
 ;;; flymake-x.el ends here
