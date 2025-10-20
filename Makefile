@@ -19,7 +19,7 @@ lint:
 		-r '1d;s/^([0-9]+).*/flymake-x.el:\1: Too long/;q1')
 
 # Run emacs -Q with flymake-x
-_baremacs: ${ELC}
+sandbox: ${ELC}
 	${emacs} -Q -L . \
 	         -l flymake-x -l flymake-x-sample-checkers -f flymake-x-setup  \
 	         -f flymake-x-sample-checkers-setup
