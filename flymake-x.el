@@ -674,8 +674,7 @@ The displayed information includes:
             (insert "\n")
 
             (insert (format "    Text: %s\n"
-                            (format "%S" (flymake-diagnostic-text diag))))
-            )))
+                            (format "%S" (flymake-diagnostic-text diag)))))))
       (special-mode)
       (button-mode)
       (font-lock-add-keywords nil
