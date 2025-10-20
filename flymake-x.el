@@ -579,19 +579,20 @@ The displayed information includes:
               "No checkers were created for the current buffer;"
               " is the checker defined for another major mode?")))
     (setq checker (car flymake-x-buffer-checkers))
-    (setq process (flymake-x-checker-process checker))
-
-    (setq sentinel (process-sentinel process))
-    (set-process-sentinel
-     process
-     (lambda (&rest args)
-       (with-current-buffer (flymake-x-process-output-buffer checker)
-         (setq process-output (buffer-string)))
-       (apply sentinel args)))
-
-    (ignore-errors (kill-buffer "*flymake-x debug process output*"))
 
     (with-current-buffer (get-buffer-create "*flymake-x debug*")
+      (setq process (flymake-x-checker-process checker))
+      (when process
+        (setq sentinel (process-sentinel process))
+        (set-process-sentinel
+         process
+         (lambda (&rest args)
+           (with-current-buffer (flymake-x-process-output-buffer checker)
+             (setq process-output (buffer-string)))
+           (apply sentinel args))))
+
+      (ignore-errors (kill-buffer "*flymake-x debug process output*"))
+
       (let ((inhibit-read-only t))
         (setq buffer-read-only t)
         (setq buffer-undo-list t)
@@ -601,11 +602,16 @@ The displayed information includes:
         (setq stderr-buffer (format " *stderr of flymake-x-%s*"
                                     (flymake-x-checker-name checker)))
 
-        (save-current-buffer
-          (while (accept-process-output process))
-          (sit-for 0.1))
+        (when process
+          (save-current-buffer
+            (while (accept-process-output process))
+            (sit-for 0.1)))
 
         (let ((standard-output (current-buffer)))
+          (insert-button "[Show flymake log buffer]"
+                               'action (lambda (&rest _args)
+                                         (flymake-switch-to-log-buffer)))
+                (insert "\n")
           (insert (format "Checker: %s\n" (flymake-x-checker-name checker)))
           (insert (format "Type: %s\n" (eieio-object-class checker)))
           (insert (format "Diagnostics from stderr: %s\n"
@@ -619,27 +625,29 @@ The displayed information includes:
                    (if (flymake-x-checker-columns-start-from-1-p checker)
                        "yes" "no")))
           (insert (format "Command: %S\n" (flymake-x-checker-command checker)))
-          (insert (format "Process exit status: %s\n"
-                          (process-exit-status process)))
-          (insert (format "Output: %s chars " (length process-output)))
-          (insert-button
-           "[Show process output]" 'action
-           (lambda (&rest _args)
-             (with-current-buffer
-                 (get-buffer-create "*flymake-x debug process output*")
-               (let ((inhibit-read-only t))
-                 (setq buffer-read-only t)
-                 (setq buffer-undo-list t)
-                 (erase-buffer)
-                 (insert process-output)
-                 (pop-to-buffer (current-buffer))
-                 (special-mode)))))
-          (insert "\n")
-          (insert "Stderr: ")
-          (insert-button
-           "[Show stderr buffer]" 'action
-           (lambda (&rest _args) (pop-to-buffer stderr-buffer)))
-          (insert "\n")
+          (if (not process)
+              (insert "Error: Process was not created\n")
+            (insert (format "Process exit status: %s\n"
+                            (process-exit-status process)))
+            (insert (format "Output: %s chars " (length process-output)))
+            (insert-button
+             "[Show process output]" 'action
+             (lambda (&rest _args)
+               (with-current-buffer
+                   (get-buffer-create "*flymake-x debug process output*")
+                 (let ((inhibit-read-only t))
+                   (setq buffer-read-only t)
+                   (setq buffer-undo-list t)
+                   (erase-buffer)
+                   (insert process-output)
+                   (pop-to-buffer (current-buffer))
+                   (special-mode)))))
+            (insert "\n")
+            (insert "Stderr: ")
+            (insert-button
+             "[Show stderr buffer]" 'action
+             (lambda (&rest _args) (pop-to-buffer stderr-buffer)))
+            (insert "\n"))
           (insert "Error patterns:\n")
           (cl-loop for pat in (flymake-x-checker-error-patterns checker)
                    do (progn (insert "\n")
@@ -679,6 +687,7 @@ The displayed information includes:
       (button-mode)
       (font-lock-add-keywords nil
                               '(("\\(:error\\)" 1 'error prepend)
+                                ("^\\(Error:\\)" 1 'error prepend)
                                 ("\\(:warning\\)" 1 'warning prepend)
                                 ("\\(:note\\)" 1 'flymake-note-echo prepend)))
       (setq-local font-lock-keywords-only nil)
