@@ -4,7 +4,7 @@
 
 ;; Author: Michał Krzywkowski <k.michal@zoho.com>
 ;; Keywords: languages, tools
-;; Version: 0.1.0
+;; Version: 0.2.0
 ;; Homepage: https://github.com/mkcms/flymake-x
 ;; Package-Requires: ((emacs "28.1") (flymake "1.0"))
 

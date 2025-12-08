@@ -1,3 +1,15 @@
+2025-12-08  Michał Krzywkowski  <k.michal@zoho.com>
+
+	Version 0.2.0
+
+	- Minimum Emacs version was bumped to 28.
+
+	- Fixed an issue with the parsing of process output caused by a
+	change in one of the newer Emacs versions.
+
+	- New command `flymake-x-debug' helps with defining new checkers
+	by running a checker once and displaying retrieved information.
+
 2025-10-11  Michał Krzywkowski  <k.michal@zoho.com>
 
 	Version 0.1.0
